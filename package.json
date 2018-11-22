@@ -1,0 +1,50 @@
+{
+  "name": "showstubs-ticket-mailer-api",
+  "version": "2.0.0",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": "8.11.2",
+    "npm": "6.0.1"
+  },
+  "scripts": {
+    "start": "node src/server.babel.js",
+    "server": "nodemon --exec babel-node --presets @babel/preset-env --require node_modules/dotenv/config src/index.js"
+  },
+  "author": "Adam Bohannon",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/node": "^7.0.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
+    "@babel/plugin-transform-regenerator": "^7.0.0",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-stage-0": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "@sendgrid/mail": "^6.3.1",
+    "bcrypt": "^3.0.0",
+    "body-parser": "^1.18.3",
+    "dotenv": "^6.0.0",
+    "express": "^4.16.3",
+    "jwt-simple": "^0.5.1",
+    "moment": "^2.22.2",
+    "mongoose": "^5.2.7",
+    "morgan": "^1.9.0",
+    "passport": "^0.4.0",
+    "passport-jwt": "^4.0.0",
+    "passport-local": "^1.0.0",
+    "redis": "^2.8.0",
+    "shopify-api-node": "^2.15.0",
+    "uuid": "^3.3.2",
+    "winston": "^3.1.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^9.0.0",
+    "eslint": "^5.5.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "nodemon": "^1.18.3"
+  }
+}

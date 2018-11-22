@@ -1,0 +1,18 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true,
+        "node": true
+    },
+    "extends": "airbnb-base",
+    "parser": "babel-eslint",
+    "rules": {
+        "camelcase": 0,
+        "no-param-reassign": 0,
+        "no-restricted-syntax": 0,
+        "no-prototype-builtins": 0,
+        "import/prefer-default-export": 0,
+        "semi": [2, "never"],
+        "import/no-named-as-default-member": 0
+    }
+}
