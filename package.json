@@ -26,6 +26,7 @@
     "@sendgrid/mail": "^6.3.1",
     "bcrypt": "^3.0.0",
     "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
     "dotenv": "^6.0.0",
     "express": "^4.16.3",
     "jwt-simple": "^0.5.1",
