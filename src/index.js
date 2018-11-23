@@ -4,6 +4,7 @@ import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
 import mongoose from 'mongoose'
+import dbConfig from './config/db'
 import redisdb from './config/redis'
 import authRouter from './routes/authRoutes'
 import dataRouter from './routes/dataRoutes'
@@ -13,13 +14,21 @@ import emailRouter from './routes/emailRoutes'
 const app = express()
 const ENV = process.env.NODE_ENV || 'development'
 
-console.log(ENV)
+console.log('Environment: ', ENV)
 
 // Redis
 redisdb(ENV)
 
 // MongoDB Setup
-mongoose.connect(process.env.DEV_MONGO_URI, () => console.log('YEWWWWW MongoDB connected!'))
+const connect = async () => {
+  try {
+    await mongoose.connect(dbConfig[ENV], () => console.log(`YEWWWWW ${ENV} MongoDB connected!`))
+  } catch (err) {
+    console.log('Error connected to MongoDB', err)
+  }
+}
+
+connect()
 
 // Express middleware
 app.use(cors()) // TODO: configure
@@ -35,17 +44,6 @@ app.use('/', dataRouter)
 app.use('/', authRouter)
 app.use('/', userRouter)
 app.use('/', emailRouter)
-
-// Serve static files for production
-if (process.env.NODE_ENV === 'production'
-  || process.env.NODE_ENV === 'staging') {
-  app.use(express.static('client/dist'))
-
-  const path = require('path')
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
-  })
-}
 
 // Server setup
 const PORT = process.env.PORT || 3001
