@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/server.babel.js",
-    "server": "nodemon --exec babel-node --presets @babel/preset-env --require node_modules/dotenv/config src/index.js"
+    "server": "NODE_ENV=development nodemon --exec babel-node --presets @babel/preset-env --require node_modules/dotenv/config src/index.js"
   },
   "author": "Adam Bohannon",
   "license": "ISC",
@@ -27,6 +27,7 @@
     "cors": "^2.8.5",
     "dotenv": "^6.0.0",
     "express": "^4.16.3",
+    "helmet": "^3.15.0",
     "jwt-simple": "^0.5.1",
     "moment": "^2.22.2",
     "mongoose": "^5.2.7",

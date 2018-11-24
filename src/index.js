@@ -1,6 +1,7 @@
 import express from 'express'
 import http from 'http'
 import bodyParser from 'body-parser'
+import helmet from 'helmet'
 import cors from 'cors'
 import morgan from 'morgan'
 import mongoose from 'mongoose'
@@ -31,10 +32,10 @@ const connect = async () => {
 connect()
 
 // Express middleware
-app.use(cors()) // TODO: configure
-app.use(morgan('dev'))
-app.use(bodyParser.json())
-app.set('trust proxy', true)
+app.use(helmet())
+  .use(cors()) // TODO: configure
+  .use(morgan('dev'))
+  .use(bodyParser.json())
 
 // Routes
 app.get('/', (req, res) => {
