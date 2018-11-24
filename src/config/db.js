@@ -5,5 +5,6 @@ const {
 
 export default {
   development: DEV_MONGO_URI,
+  staging: DEV_MONGO_URI,
   production: PROD_MONGO_URI,
 }
