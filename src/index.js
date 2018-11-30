@@ -33,9 +33,18 @@ connect()
 
 // Express middleware
 app.use(helmet())
-  .use(cors()) // TODO: configure
-  .use(morgan('dev'))
   .use(bodyParser.json())
+  .use(morgan('dev'))
+  .use(cors({
+    origin: [
+      'http://localhost:3000',
+      /\.herokuapp\.com$/,
+    ],
+    methods: 'GET,PUT,POST,PATCH,DELETE',
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Authorization, Accept',
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })) // TODO: configure
 
 // Routes
 app.get('/', (req, res) => {
