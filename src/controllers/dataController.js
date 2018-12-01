@@ -24,6 +24,8 @@ export const fetchShows = async (req, res) => {
 
     const showsList = await shopify.productListing.list({ collection_id })
 
+    if (!showsList || showsList.length < 1) throw new Error('Failed to fetch shows.')
+
     const modifiedShowsList = await addMetafieldsToShows(showsList)
 
     res.status(200).json(modifiedShowsList)
