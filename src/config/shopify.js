@@ -8,7 +8,7 @@ let params
 
 // Limit the number of API calls so we don't get a 429 bucket overflor error
 // more info: https://help.shopify.com/en/api/getting-started/api-call-limit
-const autoLimit = { calls: 2, interval: 1000, bucketSize: 30 }
+const autoLimit = { calls: 2, interval: 1000, bucketSize: 35 }
 const timeout = 15000
 
 if (dev) {
