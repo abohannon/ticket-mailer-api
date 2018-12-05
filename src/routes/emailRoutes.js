@@ -4,6 +4,7 @@ import {
   saveEmail,
   fetchEmail,
   sendTicketEmail,
+  sendTestEmail,
   parseEmailWebhooks,
 } from '../controllers/emailController'
 import passportConfig from '../config/passport'
@@ -17,8 +18,8 @@ router.get('/fetchEmail', requireAuth, fetchEmail)
 
 router.post('/saveEmail', requireAuth, saveEmail)
 router.post('/sendEmail', requireAuth, sendTicketEmail)
+router.post('/sendTestEmail', requireAuth, sendTestEmail)
 router.post('/webhooks', parseEmailWebhooks)
-
 
 emailRouter.use('/email', router)
 
