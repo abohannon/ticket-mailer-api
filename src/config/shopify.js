@@ -1,4 +1,5 @@
 import Shopify from 'shopify-api-node'
+import { logger } from '../helpers/utils'
 
 const ENV = process.env.NODE_ENV
 const dev = ENV === 'development' || ENV === 'staging'
@@ -8,7 +9,7 @@ let params
 
 // Limit the number of API calls so we don't get a 429 bucket overflor error
 // more info: https://help.shopify.com/en/api/getting-started/api-call-limit
-const autoLimit = { calls: 2, interval: 1000, bucketSize: 35 }
+const autoLimit = { calls: 2, interval: 1000, bucketSize: 30 }
 const timeout = 15000
 
 if (dev) {
@@ -29,4 +30,8 @@ if (dev) {
   }
 }
 
-export default new Shopify(params)
+const shopify = new Shopify(params)
+
+shopify.on('callLimits', limits => logger.info('Shopify API Limits: ', limits))
+
+export default shopify
