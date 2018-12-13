@@ -10,8 +10,6 @@ const {
 } = process.env
 
 Promise.promisifyAll(redis)
-// Promise.promisifyAll(redis.RedisClient.prototype)
-// Promise.promisifyAll(redis.Multi.prototype)
 
 export default (ENV) => {
   let client

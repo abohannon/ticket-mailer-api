@@ -35,17 +35,27 @@ export const fetchTours = async (req, res) => {
 }
 
 export const fetchShows = async (req, res) => {
+  // collection_id is optional
+  const { collection_id } = req.query
+
   try {
-    // collection_id is optional
-    const { collection_id } = req.query
+    const cachedShows = await redisClient.hgetAsync('shows', `${collection_id || 'all'}`)
 
-    const showsList = await shopify.productListing.list({ collection_id })
+    let response = JSON.parse(cachedShows)
 
-    if (!showsList || showsList.length < 1) throw new Error('Failed to fetch shows.')
+    if (!cachedShows) {
+      const showsList = await shopify.productListing.list({ collection_id })
 
-    const modifiedShowsList = await addMetafieldsToShows(showsList)
+      if (!showsList || showsList.length < 1) throw new Error('Failed to fetch shows.')
 
-    res.status(200).json(modifiedShowsList)
+      const modifiedShowsList = await addMetafieldsToShows(showsList)
+
+      redisClient.hset('shows', `${collection_id || 'all'}`, JSON.stringify(modifiedShowsList))
+
+      response = modifiedShowsList
+    }
+
+    return res.status(200).json(response)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
