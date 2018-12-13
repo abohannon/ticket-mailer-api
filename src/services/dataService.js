@@ -4,14 +4,14 @@ import { emailSentMetafield } from '../helpers/metafieldHelpers'
 export const filterOrdersByVariantId = (orders, id) => {
   if (!Array.isArray(orders)) throw new Error('Param "orders" must be an array')
 
-  return orders.reduce((filtered, order) => {
+  return Promise.all(orders.reduce((filtered, order) => {
     order.line_items.forEach((item) => {
       if (item.variant_id == id) {
         filtered.push(order)
       }
     })
     return filtered
-  }, [])
+  }, []))
 }
 
 

@@ -62,21 +62,31 @@ export const fetchShows = async (req, res) => {
 }
 
 export const fetchOrders = async (req, res) => {
+  const { variant_id } = req.query
+  // TODO: Cache all orders instead and do work on that array from Redis
   try {
-    const { variant_id } = req.query
+    const cachedOrders = await redisClient.hgetAsync('orders', `${variant_id}`)
 
-    const orders = await shopify.order.list()
+    let response = JSON.parse(cachedOrders)
 
-    const modifiedOrdersList = await addMetafieldsToOrders(orders)
+    if (!cachedOrders) {
+      const orders = await shopify.order.list()
 
-    // if a variant_id query is passed, filter the orders for that variant
-    if (Object.keys(req.query).includes('variant_id')) {
-      const variantOrders = filterOrdersByVariantId(modifiedOrdersList, variant_id)
+      if (!orders || orders.length < 1) throw new Error('Failed to fetch orders.')
 
-      return res.status(200).json(variantOrders)
+      const modifiedOrdersList = await addMetafieldsToOrders(orders)
+
+      // if a variant_id query is passed, filter the orders for that variant
+      if (Object.keys(req.query).includes('variant_id')) {
+        const variantOrders = await filterOrdersByVariantId(modifiedOrdersList, variant_id)
+
+        redisClient.hset('orders', `${variant_id}`, JSON.stringify(variantOrders))
+
+        response = variantOrders
+      }
     }
 
-    return res.status(200).json(orders)
+    return res.status(200).json(response)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
