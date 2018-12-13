@@ -15,8 +15,6 @@ import emailRouter from './routes/emailRoutes'
 const app = express()
 const ENV = process.env.NODE_ENV || 'development'
 
-console.log('Environment: ', ENV)
-
 // Redis
 redisdb(ENV)
 
@@ -60,3 +58,4 @@ const PORT = process.env.PORT || 3001
 const server = http.createServer(app)
 server.listen(PORT)
 console.log(`Server listening on ${PORT}`)
+console.log('Environment: ', ENV)
