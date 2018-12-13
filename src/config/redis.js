@@ -1,11 +1,17 @@
 import redis from 'redis'
+import * as Promise from 'bluebird'
 import { logger } from '../helpers/utils'
 import { userController } from '../controllers/userController'
+import { dataController } from '../controllers/dataController'
 
 const {
   DEV_REDISTOGO_URL,
   PROD_REDISTOGO_URL,
 } = process.env
+
+Promise.promisifyAll(redis)
+// Promise.promisifyAll(redis.RedisClient.prototype)
+// Promise.promisifyAll(redis.Multi.prototype)
 
 export default (ENV) => {
   let client
@@ -31,5 +37,6 @@ export default (ENV) => {
       })
 
     userController.setRedisClient(client)
+    dataController.setRedisClient(client)
   }
 }

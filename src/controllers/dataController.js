@@ -6,12 +6,29 @@ import {
   fetchMetafields,
 } from '../services/dataService'
 
+let redisClient
+
+export const dataController = {
+  setRedisClient(client) { redisClient = client },
+}
+
 export const fetchTours = async (req, res) => {
   try {
-    const tourList = await shopify.collectionListing.list()
-    if (tourList.length < 1) throw new Error('No tours found.')
+    const cachedTours = await redisClient.hgetAsync('data', 'fetchTours')
 
-    return res.status(200).json(tourList)
+    let response = JSON.parse(cachedTours)
+
+    if (!cachedTours) {
+      const tourList = await shopify.collectionListing.list()
+
+      if (tourList.length < 1) throw new Error('No tours found.')
+
+      redisClient.hset('data', 'fetchTours', JSON.stringify(tourList))
+
+      response = tourList
+    }
+
+    return res.status(200).json(response)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
