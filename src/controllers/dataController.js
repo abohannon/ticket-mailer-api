@@ -63,27 +63,45 @@ export const fetchShows = async (req, res) => {
 
 export const fetchOrders = async (req, res) => {
   const { variant_id } = req.query
-  // TODO: Cache all orders instead and do work on that array from Redis
+  // TODO: Remove logs when finished testing
+  // redisClient.del('orders', (err, resp) => console.log(resp))
+  redisClient.hkeys('orders', (err, resp) => console.log('hash', resp))
   try {
-    const cachedOrders = await redisClient.hgetAsync('orders', `${variant_id}`)
+    let cachedVariantOrders = await redisClient.hgetAsync('orders', `${variant_id}`)
+    console.log('cachedVariantOrders', cachedVariantOrders)
 
-    let response = JSON.parse(cachedOrders)
+    let response = JSON.parse(cachedVariantOrders)
 
-    if (!cachedOrders) {
-      const orders = await shopify.order.list()
+    if (!cachedVariantOrders) {
+      const cachedOrders = await redisClient.hgetAsync('orders', 'all')
+      console.log('cachedOrders', cachedOrders)
 
-      if (!orders || orders.length < 1) throw new Error('Failed to fetch orders.')
+      if (!cachedOrders) {
+        // if master orders list isn't cached, fetch from Shopify
+        const orders = await shopify.order.list()
 
-      const modifiedOrdersList = await addMetafieldsToOrders(orders)
+        if (!orders || orders.length < 1) throw new Error('Failed to fetch orders.')
 
-      // if a variant_id query is passed, filter the orders for that variant
-      if (Object.keys(req.query).includes('variant_id')) {
-        const variantOrders = await filterOrdersByVariantId(modifiedOrdersList, variant_id)
+        // metafields aren't included on base order object, so we have to fetch them and add them
+        const modifiedOrdersList = await addMetafieldsToOrders(orders)
 
-        redisClient.hset('orders', `${variant_id}`, JSON.stringify(variantOrders))
+        redisClient.hset('orders', 'all', JSON.stringify(modifiedOrdersList))
 
-        response = variantOrders
+        // if a variant_id query is passed, filter the orders for that variant
+        if (Object.keys(req.query).includes('variant_id')) {
+          const variantOrders = await filterOrdersByVariantId(modifiedOrdersList, variant_id)
+
+          redisClient.hset('orders', `${variant_id}`, JSON.stringify(variantOrders))
+
+          response = variantOrders
+        }
       }
+
+      cachedVariantOrders = await filterOrdersByVariantId(JSON.parse(cachedOrders), variant_id)
+
+      redisClient.hset('orders', `${variant_id}`, JSON.stringify(cachedVariantOrders), (err, resp) => console.log('hset', `${variant_id} ${resp}`))
+
+      response = cachedVariantOrders
     }
 
     return res.status(200).json(response)
