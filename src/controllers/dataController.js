@@ -6,6 +6,18 @@ import {
   fetchMetafields,
 } from '../services/dataService'
 
+export const handleWebhooksCollections = (req, res) => {
+  console.log('handleWebhooksCollections', req.body)
+}
+
+export const handleWebhooksProducts = (req, res) => {
+  console.log('handleWebhooksProducts', req.body)
+}
+
+export const handleWebhooksOrders = (req, res) => {
+  console.log('handleWebhooksOrders', req.body)
+}
+
 export const fetchTours = async (req, res) => {
   try {
     const tourList = await shopify.collectionListing.list()
