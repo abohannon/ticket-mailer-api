@@ -1,6 +1,24 @@
 import shopify from '../config/shopify'
 import { emailSentMetafield } from '../helpers/metafieldHelpers'
 
+let redisClient
+
+export const dataService = {
+  setRedisClient(client) { redisClient = client },
+}
+
+export const fetchShowsFromShopify = async (collection_id) => {
+  const showsList = await shopify.productListing.list({ collection_id })
+
+  if (!showsList || showsList.length < 1) throw new Error('Failed to fetch shows.')
+
+  const modifiedShowsList = await addMetafieldsToShows(showsList)
+
+  redisClient.hset('shows', `${collection_id || 'all'}`, JSON.stringify(modifiedShowsList))
+
+  return modifiedShowsList
+}
+
 export const filterOrdersByVariantId = (orders, id) => {
   if (!Array.isArray(orders)) throw new Error('Param "orders" must be an array')
 

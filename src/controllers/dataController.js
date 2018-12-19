@@ -1,7 +1,7 @@
 import shopify from '../config/shopify'
 import {
+  fetchShowsFromShopify,
   filterOrdersByVariantId,
-  addMetafieldsToShows,
   addMetafieldsToOrders,
   fetchMetafields,
 } from '../services/dataService'
@@ -10,6 +10,45 @@ let redisClient
 
 export const dataController = {
   setRedisClient(client) { redisClient = client },
+}
+
+export const handleWebhooksTours = async (req, res) => {
+  console.log('handleWebhooksTours===', req.body)
+
+  const updatedTour = req.body
+  const cachedTours = await redisClient.hgetAsync('data', 'fetchTours')
+
+  if (cachedTours) {
+    const cachedToursParsed = JSON.parse(cachedTours)
+
+    // need to slightly modify the updatedTour object to match the keys on the cachedTours object
+    const { id: collection_id, ...rest } = updatedTour
+    const newUpdatedTour = { collection_id, ...rest }
+
+    const hasUpdatedTourId = cachedToursParsed.some(tour => tour.collection_id === newUpdatedTour.collection_id)
+
+    // check if webhook is for creation
+    if (newUpdatedTour.published_at && !hasUpdatedTourId) {
+      const updatedTours = [...cachedToursParsed, newUpdatedTour]
+      redisClient.hset('data', 'fetchTours', JSON.stringify(updatedTours))
+    }
+
+    // check if webhook is for deletion
+    if (!newUpdatedTour.published_at && hasUpdatedTourId) {
+      const updatedTours = cachedToursParsed.filter(tour => tour.collection_id !== updatedTour.collection_id)
+      redisClient.hset('data', 'fetchTours', JSON.stringify(updatedTours))
+    }
+  }
+}
+
+// TODO: COMPLETE
+export const handleWebhooksShows = (req, res) => {
+  console.log('handleWebhooksShows', req.body)
+  // fetchShowsFromShopify()
+}
+
+export const handleWebhooksOrders = (req, res) => {
+  console.log('handleWebhooksOrders', req.body)
 }
 
 export const fetchTours = async (req, res) => {
@@ -35,6 +74,7 @@ export const fetchTours = async (req, res) => {
 }
 
 export const fetchShows = async (req, res) => {
+  // redisClient.del('shows') // TODO: Used for testing
   // collection_id is optional
   const { collection_id } = req.query
 
@@ -44,15 +84,7 @@ export const fetchShows = async (req, res) => {
     let response = JSON.parse(cachedShows)
 
     if (!cachedShows) {
-      const showsList = await shopify.productListing.list({ collection_id })
-
-      if (!showsList || showsList.length < 1) throw new Error('Failed to fetch shows.')
-
-      const modifiedShowsList = await addMetafieldsToShows(showsList)
-
-      redisClient.hset('shows', `${collection_id || 'all'}`, JSON.stringify(modifiedShowsList))
-
-      response = modifiedShowsList
+      response = await fetchShowsFromShopify(collection_id)
     }
 
     return res.status(200).json(response)
