@@ -4,8 +4,10 @@ import {
   filterOrdersByVariantId,
   addMetafieldsToOrders,
   fetchMetafields,
+  removeTour,
   removeShow,
   addShow,
+  addTour,
 } from '../services/dataService'
 import { logger } from '../helpers/utils'
 
@@ -16,29 +18,24 @@ export const dataController = {
 }
 
 export const handleWebhooksTours = async (req, res) => {
+  logger.info('Webhook: Tour updated')
+
   const updatedTour = req.body
+
+  // acknowledge webhook was received
+  if (updatedTour) res.status(200).end()
+
+  const isDeleteHook = !updatedTour.published_at
   const cachedTours = await redisClient.hgetAsync('data', 'fetchTours')
 
-  if (cachedTours) {
-    const cachedToursParsed = JSON.parse(cachedTours)
+  if (isDeleteHook) {
+    const response = await removeTour(updatedTour, cachedTours)
+    return logger.info('Delete tour response: ', response)
+  }
 
-    // need to slightly modify the updatedTour object to match the keys on the cachedTours object
-    const { id: collection_id, ...rest } = updatedTour
-    const newUpdatedTour = { collection_id, ...rest }
-
-    const hasUpdatedTourId = cachedToursParsed.some(tour => tour.collection_id === newUpdatedTour.collection_id)
-
-    // check if webhook is for creation
-    if (newUpdatedTour.published_at && !hasUpdatedTourId) {
-      const updatedTours = [...cachedToursParsed, newUpdatedTour]
-      redisClient.hset('data', 'fetchTours', JSON.stringify(updatedTours))
-    }
-
-    // check if webhook is for deletion
-    if (!newUpdatedTour.published_at && hasUpdatedTourId) {
-      const updatedTours = cachedToursParsed.filter(tour => tour.collection_id !== updatedTour.collection_id)
-      redisClient.hset('data', 'fetchTours', JSON.stringify(updatedTours))
-    }
+  if (!isDeleteHook) {
+    const response = await addTour(updatedTour, cachedTours)
+    return logger.info('Add tour response: ', response)
   }
 }
 
@@ -46,18 +43,17 @@ export const handleWebhooksShows = async (req, res) => {
   logger.info('Webhook: Show updated')
 
   const updatedShow = req.body
-  const { id: product_id } = updatedShow
+  const { id } = updatedShow
 
-  if (product_id) {
-    // acknowledge that we received the webhook as soon as possible
-    res.status(200).end()
-  }
+  // acknowledge webhook was received
+  if (id) res.status(200).end()
 
   const isDeleteHook = !updatedShow.published_at
 
   try {
     if (isDeleteHook) { // Delete show flow
       const response = await removeShow(updatedShow)
+      console.log('delete show response', response)
       return response ? logger.info('Show removed') : logger.info('Show not removed')
     }
 
@@ -75,6 +71,9 @@ export const handleWebhooksOrders = (req, res) => {
 }
 
 export const fetchTours = async (req, res) => {
+  // redisClient.hdel('data', 'fetchTours')
+  const redisResponse = await redisClient.hgetAsync('data', 'fetchTours')
+  console.log('Tours: ', redisResponse)
   try {
     const cachedTours = await redisClient.hgetAsync('data', 'fetchTours')
 

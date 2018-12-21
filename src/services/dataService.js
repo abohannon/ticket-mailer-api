@@ -8,6 +8,31 @@ export const dataService = {
   setRedisClient(client) { redisClient = client },
 }
 
+export const removeTour = async (updatedTour, cachedTours) => {
+  const updatedTours = JSON.parse(cachedTours).filter(tour => tour.collection_id !== updatedTour.id)
+  console.log('filtered: ', updatedTours)
+  try {
+    const response = await redisClient.hsetAsync('data', 'fetchTours', JSON.stringify(updatedTours))
+
+    return response
+  } catch (err) {
+    throw new Error('Error removing tour', err.message)
+  }
+}
+
+export const addTour = async (updatedTour, cachedTours) => {
+  const { id: collection_id, ...rest } = updatedTour
+  const newUpdatedTour = { collection_id, ...rest }
+  console.log('new tour array: ', [...JSON.parse(cachedTours), newUpdatedTour])
+  try {
+    const response = await redisClient.hsetAsync('data', 'fetchTours', JSON.stringify([...JSON.parse(cachedTours), newUpdatedTour]))
+
+    return response
+  } catch (err) {
+    throw new Error('Error adding tour', err.message)
+  }
+}
+
 export const removeShow = async (updatedShow) => {
   const { id: product_id } = updatedShow
 
