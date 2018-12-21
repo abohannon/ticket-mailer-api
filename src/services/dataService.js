@@ -1,10 +1,72 @@
 import shopify from '../config/shopify'
 import { emailSentMetafield } from '../helpers/metafieldHelpers'
+import { logger } from '../helpers/utils'
 
 let redisClient
 
 export const dataService = {
   setRedisClient(client) { redisClient = client },
+}
+
+export const removeShow = async (updatedShow) => {
+  const { id: product_id } = updatedShow
+
+  const collectionId = await redisClient.hgetAsync('shows:collections', product_id)
+
+  if (!collectionId) {
+    logger.info('No collection found with that product id')
+    return -1
+  }
+
+  const cachedShows = await redisClient.hgetAsync('shows', collectionId)
+
+  if (!cachedShows) {
+    logger.info('No cached collection found')
+    return -1
+  }
+
+  const cachedShowsFiltered = JSON.parse(cachedShows).filter(show => show.product_id !== product_id)
+
+  redisClient.hset('shows', collectionId, JSON.stringify(cachedShowsFiltered))
+  redisClient.hdel('shows:collections', product_id)
+
+  return 1
+}
+
+export const addShow = async (updatedShow) => {
+  const { id: product_id, ...rest } = updatedShow
+
+  const newUpdatedShow = { product_id, ...rest }
+
+  const productExistsInCollection = await redisClient.hexistsAsync('shows:collections', product_id)
+
+  if (productExistsInCollection) {
+    logger.info('Show already exists in collection')
+    return -1
+  }
+
+  const collections = await shopify.collect.list({ product_id })
+
+  if (!collections || !collections.length) {
+    logger.info('No collections found with that product id')
+    return -1
+  }
+
+  const { collection_id } = collections[0]
+  const cachedShows = await redisClient.hgetAsync('shows', collection_id)
+
+  if (!cachedShows || !cachedShows.length) {
+    logger.info('No cached shows for that collection found')
+    return -1
+  }
+
+  const cachedShowsParsed = JSON.parse(cachedShows)
+  const updatedShows = [...cachedShowsParsed, newUpdatedShow]
+
+  redisClient.hset('shows', collection_id, JSON.stringify(updatedShows))
+  redisClient.hset('shows:collections', product_id, collection_id)
+
+  return 1
 }
 
 export const fetchShowsFromShopify = async (collection_id) => {
