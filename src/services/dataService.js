@@ -13,8 +13,10 @@ export const fetchShowsFromShopify = async (collection_id) => {
   if (!showsList || showsList.length < 1) throw new Error('Failed to fetch shows.')
 
   const modifiedShowsList = await addMetafieldsToShows(showsList)
+  const showIds = modifiedShowsList.map(show => show.product_id)
 
   redisClient.hset('shows', `${collection_id || 'all'}`, JSON.stringify(modifiedShowsList))
+  redisClient.sadd(`${collection_id}`, ...showIds)
 
   return modifiedShowsList
 }
