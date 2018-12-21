@@ -43,48 +43,54 @@ export const handleWebhooksTours = async (req, res) => {
 
 // TODO: COMPLETE
 export const handleWebhooksShows = async (req, res) => {
-  console.log('handleWebhooksShows', req.body)
-
   const updatedShow = req.body
   const { id: product_id, ...rest } = updatedShow
 
   try {
-    // if (!updatedShow.published_at)
-    const collections = await shopify.collect.list({ product_id })
-    console.log('collections', collections)
-    if (!collections || !collections.length) throw new Error('No collections found with that product ID')
-    const { collection_id } = collections[0]
-    console.log('collect id', collection_id)
+    // DELETE flow
+    if (!updatedShow.published_at) {
+      const collectionId = await redisClient.hgetAsync('shows:collections', product_id)
 
-    // const cachedShows = await redisClient.hgetAsync('shows', `${collection_id}`)
+      if (!collectionId) throw new Error('No collection id found associated with that product id')
 
-    // if (!cachedShows || !cachedShows.length) throw new Error('No cached shows for that collection found')
-    // console.log('cachedShows', cachedShows)
-    // const cachedShowsParsed = JSON.parse(cachedShows)
-    // console.log('cachedShowsParsed', cachedShowsParsed)
-    // const newUpdatedShow = { product_id, ...rest }
-    // console.log('newUpdatedShow', newUpdatedShow)
+      const cachedShows = await redisClient.hgetAsync('shows', collectionId)
 
-    // const hasUpdatedShow = cachedShowsParsed.some(show => show.product_id === newUpdatedShow.product_id)
-    // console.log('hasUpdatedShow', hasUpdatedShow)
+      if (!cachedShows) throw new Error('No cached shows found for that collection id')
 
-    // let updatedShows
+      const parsedCachedShows = JSON.parse(cachedShows)
+      const cachedShowsFiltered = parsedCachedShows.filter(show => show.product_id !== product_id)
 
-    // // Webhook show creation flow
-    // if (newUpdatedShow.published_at && !hasUpdatedShow) {
-    //   updatedShows = [...cachedShowsParsed, newUpdatedShow]
-    //   console.log('ADD', updatedShows)
-    // }
+      redisClient.hset('shows', collectionId, JSON.stringify(cachedShowsFiltered))
 
-    // // Webhook show deletion flow
-    // if (!newUpdatedShow.published_at && hasUpdatedShow) {
-    //   updatedShows = cachedShowsParsed.filter(show => show.product_id !== newUpdatedShow.product_id)
-    //   console.log('DELETE', updatedShows)
-    // }
+      redisClient.hdel('shows:collections', product_id)
+    } else { // ADD flow
+      const collections = await shopify.collect.list({ product_id })
 
-    // if (updatedShows) {
-    //   redisClient.hset('shows', `${collection_id}`, JSON.stringify(updatedShows), () => console.log('hset'))
-    // }
+      if (!collections || !collections.length) throw new Error('No collections found on Shopify with that product id')
+
+      const { collection_id } = collections[0]
+
+      const cachedShows = await redisClient.hgetAsync('shows', collection_id)
+
+      if (!cachedShows || !cachedShows.length) throw new Error('No cached shows for that collection found')
+
+      const cachedShowsParsed = JSON.parse(cachedShows)
+      const newUpdatedShow = { product_id, ...rest }
+
+      const hasUpdatedShow = cachedShowsParsed.some(show => show.product_id === newUpdatedShow.product_id)
+
+      let updatedShows
+
+      // If the object has the published_at key, it's an add webhook.
+      if (newUpdatedShow.published_at && !hasUpdatedShow) {
+        updatedShows = [...cachedShowsParsed, newUpdatedShow]
+      }
+
+      if (updatedShows) {
+        redisClient.hset('shows', collection_id, JSON.stringify(updatedShows))
+        redisClient.hset('shows:collections', product_id, collection_id)
+      }
+    }
   } catch (err) {
     console.log(err)
   }
@@ -119,13 +125,6 @@ export const fetchTours = async (req, res) => {
 export const fetchShows = async (req, res) => {
   // collection_id is optional
   const { collection_id } = req.query
-
-  // TODO: The following used for testing
-  // redisClient.del(collection_id)
-  // redisClient.del('shows')
-  const productIds = await redisClient.smembersAsync(`${collection_id}`)
-  console.log(productIds)
-  // *********
 
   try {
     const cachedShows = await redisClient.hgetAsync('shows', `${collection_id || 'all'}`)

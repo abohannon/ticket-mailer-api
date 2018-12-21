@@ -16,7 +16,9 @@ export const fetchShowsFromShopify = async (collection_id) => {
   const showIds = modifiedShowsList.map(show => show.product_id)
 
   redisClient.hset('shows', `${collection_id || 'all'}`, JSON.stringify(modifiedShowsList))
-  redisClient.sadd(`${collection_id}`, ...showIds)
+
+  // save each product_id with it's parent's collection_id
+  showIds.forEach(id => redisClient.hset('shows:collections', id, collection_id))
 
   return modifiedShowsList
 }
