@@ -1,4 +1,5 @@
-import shopify from '../config/shopify'
+// import shopify from '../config/shopify'
+import Shopify from '../helpers/shopify'
 import {
   fetchShowsFromShopify,
   filterOrdersByVariantId,
@@ -10,6 +11,8 @@ import {
   addTour,
 } from '../services/dataService'
 import { logger } from '../helpers/utils'
+
+const shopify = Shopify.build()
 
 let redisClient
 
@@ -71,25 +74,9 @@ export const handleWebhooksOrders = (req, res) => {
 }
 
 export const fetchTours = async (req, res) => {
-  // redisClient.hdel('data', 'fetchTours')
-  const redisResponse = await redisClient.hgetAsync('data', 'fetchTours')
-  console.log('Tours: ', redisResponse)
   try {
-    const cachedTours = await redisClient.hgetAsync('data', 'fetchTours')
-
-    let response = JSON.parse(cachedTours)
-
-    if (!cachedTours) {
-      const tourList = await shopify.collectionListing.list()
-
-      if (tourList.length < 1) throw new Error('No tours found.')
-
-      redisClient.hset('data', 'fetchTours', JSON.stringify(tourList))
-
-      response = tourList
-    }
-
-    return res.status(200).json(response)
+    const tours = await shopify.cache({ key: 'tours' }).getTours()
+    return res.status(200).json(tours)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
@@ -100,15 +87,8 @@ export const fetchShows = async (req, res) => {
   const { collection_id } = req.query
 
   try {
-    const cachedShows = await redisClient.hgetAsync('shows', `${collection_id || 'all'}`)
-
-    let response = JSON.parse(cachedShows)
-
-    if (!cachedShows) {
-      response = await fetchShowsFromShopify(collection_id)
-    }
-
-    return res.status(200).json(response)
+    const shows = await shopify.cache({ key: 'shows' }).getShows(collection_id)
+    return res.status(200).json(shows)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
@@ -116,48 +96,10 @@ export const fetchShows = async (req, res) => {
 
 export const fetchOrders = async (req, res) => {
   const { variant_id } = req.query
-  // TODO: Remove logs when finished testing
-  // redisClient.del('orders', (err, resp) => console.log(resp))
-  redisClient.hkeys('orders', (err, resp) => console.log('hash', resp))
+
   try {
-    let cachedVariantOrders = await redisClient.hgetAsync('orders', `${variant_id}`)
-    console.log('cachedVariantOrders', cachedVariantOrders)
-
-    let response = JSON.parse(cachedVariantOrders)
-
-    if (!cachedVariantOrders) {
-      const cachedOrders = await redisClient.hgetAsync('orders', 'all')
-      console.log('cachedOrders', cachedOrders)
-
-      if (!cachedOrders) {
-        // if master orders list isn't cached, fetch from Shopify
-        const orders = await shopify.order.list()
-
-        if (!orders || orders.length < 1) throw new Error('Failed to fetch orders.')
-
-        // metafields aren't included on base order object, so we have to fetch them and add them
-        const modifiedOrdersList = await addMetafieldsToOrders(orders)
-
-        redisClient.hset('orders', 'all', JSON.stringify(modifiedOrdersList))
-
-        // if a variant_id query is passed, filter the orders for that variant
-        if (Object.keys(req.query).includes('variant_id')) {
-          const variantOrders = await filterOrdersByVariantId(modifiedOrdersList, variant_id)
-
-          redisClient.hset('orders', `${variant_id}`, JSON.stringify(variantOrders))
-
-          response = variantOrders
-        }
-      }
-
-      cachedVariantOrders = await filterOrdersByVariantId(JSON.parse(cachedOrders), variant_id)
-
-      redisClient.hset('orders', `${variant_id}`, JSON.stringify(cachedVariantOrders), (err, resp) => console.log('hset', `${variant_id} ${resp}`))
-
-      response = cachedVariantOrders
-    }
-
-    return res.status(200).json(response)
+    const orders = await shopify.cache({ key: 'orders' }).getOrders(variant_id)
+    return res.status(200).json(orders)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

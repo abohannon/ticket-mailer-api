@@ -4,6 +4,7 @@ import { logger } from '../helpers/utils'
 import { userController } from '../controllers/userController'
 import { dataController } from '../controllers/dataController'
 import { dataService } from '../services/dataService'
+import { shopifyHelper } from '../helpers/shopify'
 
 const {
   DEV_REDISTOGO_URL,
@@ -38,5 +39,6 @@ export default (ENV) => {
     userController.setRedisClient(client)
     dataController.setRedisClient(client)
     dataService.setRedisClient(client)
+    shopifyHelper.setRedisClient(client)
   }
 }
