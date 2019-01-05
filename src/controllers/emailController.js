@@ -3,10 +3,6 @@ import Email from '../models/email'
 import sgMail from '../config/sendgrid'
 import shopify from '../helpers/shopify'
 import { logger } from '../helpers/utils'
-import { generatePersonalizations } from '../services/emailService'
-import {
-  fetchMetafields, searchMetafields, updateMetafieldsForOrders,
-} from '../services/dataService'
 
 // TODO: WIP
 export const parseEmailWebhooks = (req, res) => {
