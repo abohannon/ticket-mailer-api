@@ -13,6 +13,7 @@
         "no-prototype-builtins": 0,
         "import/prefer-default-export": 0,
         "semi": [2, "never"],
-        "import/no-named-as-default-member": 0
+        "import/no-named-as-default-member": 0,
+        "class-methods-use-this": 0
     }
 }

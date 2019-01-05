@@ -1,6 +1,3 @@
-import Shopify from 'shopify-api-node'
-import { logger } from '../helpers/utils'
-
 const ENV = process.env.NODE_ENV
 const dev = ENV === 'development' || ENV === 'staging'
 const prod = ENV === 'production'
@@ -30,8 +27,4 @@ if (dev) {
   }
 }
 
-const shopify = new Shopify(params)
-
-shopify.on('callLimits', limits => logger.info('Shopify API Limits: ', limits))
-
-export default shopify
+export default params

@@ -1,18 +1,11 @@
-// import shopify from '../config/shopify'
-import Shopify from '../helpers/shopify'
+import shopify from '../helpers/shopify'
 import {
-  fetchShowsFromShopify,
-  filterOrdersByVariantId,
-  addMetafieldsToOrders,
-  fetchMetafields,
   removeTour,
   removeShow,
   addShow,
   addTour,
 } from '../services/dataService'
 import { logger } from '../helpers/utils'
-
-const shopify = Shopify.build()
 
 let redisClient
 
@@ -90,6 +83,7 @@ export const fetchShows = async (req, res) => {
     const shows = await shopify.cache({ key: 'shows' }).getShows(collection_id)
     return res.status(200).json(shows)
   } catch (err) {
+    console.log(err)
     return res.status(500).json({ error: err.message })
   }
 }
@@ -111,21 +105,9 @@ export const fetchMetafieldsForResource = async (req, res) => {
   const { owner_resource, owner_id } = req.query
 
   try {
-    const metafields = await fetchMetafields(owner_resource, owner_id)
+    const metafields = await shopify.fetchMetafields(owner_resource, owner_id)
 
     res.status(200).json(metafields)
-  } catch (err) {
-    return res.status(500).json({ error: err.message })
-  }
-}
-
-export const fetchSingleMetafield = async (req, res) => {
-  const { id } = req.query
-
-  try {
-    const metafield = await shopify.metafield.get(id)
-
-    res.status(200).json(metafield)
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

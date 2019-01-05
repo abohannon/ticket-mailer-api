@@ -1,10 +1,11 @@
 import moment from 'moment'
 import Email from '../models/email'
 import sgMail from '../config/sendgrid'
+import shopify from '../helpers/shopify'
 import { logger } from '../helpers/utils'
 import { generatePersonalizations } from '../services/emailService'
 import {
-  fetchMetafields, searchMetafields, createMetafield, updateMetafieldsForOrders,
+  fetchMetafields, searchMetafields, updateMetafieldsForOrders,
 } from '../services/dataService'
 
 // TODO: WIP
@@ -60,8 +61,8 @@ export const sendTestEmail = async (req, res) => {
     logger.info('Test email sent')
     return res.status(200).json({ message: 'Test email sent' })
   } catch (err) {
-    logger.debug({ error: err.message, sendGrid_error: err.response })
-    return res.status(500).json({ error: err.message, sendGrid_error: err.response })
+    logger.debug({ error: err.message, stack: err.stack, sendGrid_error: err.response })
+    return res.status(500).json({ error: err.message, stack: err.stack, sendGrid_error: err.response })
   }
 }
 
@@ -110,8 +111,8 @@ export const sendTicketEmail = async (req, res) => {
       sgMail.send(message)
     }
 
-    const variantMetafields = await fetchMetafields('variant', variant_id)
-    const priorEmailSentMetafield = searchMetafields(variantMetafields, 'key', 'email_sent')
+    const variantMetafields = await shopify.fetchMetafields('variant', variant_id)
+    const priorEmailSentMetafield = shopify.searchMetafields(variantMetafields, 'key', 'email_sent')
 
     if (priorEmailSentMetafield.length < 1) {
       const metafieldData = {
@@ -123,16 +124,16 @@ export const sendTicketEmail = async (req, res) => {
         owner_id: variant_id,
       }
 
-      await createMetafield(metafieldData)
+      await shopify.createMetafield(metafieldData)
     }
 
-    await updateMetafieldsForOrders(orders)
+    await shopify.updateMetafieldsForOrders(orders)
 
     logger.info('Emails sent')
     return res.status(200).json({ message: 'Emails sent' })
   } catch (err) {
-    logger.debug({ error: err.message, sendGrid_error: err.response })
-    return res.status(500).json({ error: err.message, sendGrid_error: err.response })
+    logger.debug({ error: err.message, stack: err.stack, sendGrid_error: err.response })
+    return res.status(500).json({ error: err.message, stack: err.stack, sendGrid_error: err.response })
   }
 }
 

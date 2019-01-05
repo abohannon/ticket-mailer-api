@@ -5,7 +5,6 @@ import {
   fetchShows,
   fetchOrders,
   fetchMetafieldsForResource,
-  fetchSingleMetafield,
   handleWebhooksTours,
   handleWebhooksShows,
   handleWebhooksOrders,
@@ -22,7 +21,6 @@ router.get('/fetchShows', requireAuth, fetchShows)
 router.get('/fetchOrders', requireAuth, fetchOrders)
 
 router.get('/fetchMetafieldsForResource', requireAuth, fetchMetafieldsForResource)
-router.get('/fetchSingleMetafield', requireAuth, fetchSingleMetafield)
 
 router.post('/webhooks/tours', handleWebhooksTours)
 router.post('/webhooks/shows', handleWebhooksShows)
