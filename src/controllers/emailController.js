@@ -107,10 +107,11 @@ export const sendTicketEmail = async (req, res) => {
       sgMail.send(message)
     }
 
+    // Create `email_sent: true` metafield for variant if it doesn't already exist
     const variantMetafields = await shopify.fetchMetafields('variant', variant_id)
-    const priorEmailSentMetafield = shopify.searchMetafields(variantMetafields, 'key', 'email_sent')
+    const emailSentMetafield = shopify.searchMetafields(variantMetafields, 'key', 'email_sent')
 
-    if (priorEmailSentMetafield.length < 1) {
+    if (emailSentMetafield.length < 1) {
       const metafieldData = {
         key: 'email_sent',
         value: 'true',
@@ -123,7 +124,7 @@ export const sendTicketEmail = async (req, res) => {
       await shopify.createMetafield(metafieldData)
     }
 
-    await shopify.updateMetafieldsForOrders(orders)
+    await shopify.updateMetafieldsForOrders(orders, variant_id)
 
     logger.info('Emails sent')
     return res.status(200).json({ message: 'Emails sent' })

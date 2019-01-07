@@ -1,4 +1,5 @@
 import Shopify from 'shopify-api-node'
+import merge from 'lodash/merge'
 import { logger } from './utils'
 import config from '../config/shopify'
 import { filterOrdersByVariantId } from '../services/dataService'
@@ -31,6 +32,10 @@ class CustomShopify {
     this.useCache = true
     this.hashKey = JSON.stringify(options.key || '')
     return this
+  }
+
+  clearCache(hash, field) {
+    redisClient.hdel(JSON.stringify(hash), JSON.stringify(field))
   }
 
   async getTours() {
@@ -81,7 +86,6 @@ class CustomShopify {
   }
 
   async getOrders(variantId) {
-    console.log('custom get orders')
     if (!this.useCache) {
       const allOrders = await this.shopify.order.list()
       const ordersForVariant = await filterOrdersByVariantId(allOrders, variantId)
@@ -156,14 +160,6 @@ class CustomShopify {
     }
   }
 
-  async mergeMetafields(metafields, object) {
-    for (const key in metafields) {
-      if (metafields.hasOwnProperty(key)) {
-        object[key] = metafields[key]
-      }
-    }
-  }
-
   parseMetafields(arr) {
     return arr.reduce((acc, item) => {
       acc[item.key] = item.value
@@ -177,21 +173,34 @@ class CustomShopify {
     return metafieldsList.filter(metafield => metafield[key] === value)
   }
 
+  async findAndMergeMetafields(resource, name) {
+    const metafields = await this.fetchMetafields(name, resource.id)
+    const parsedMetafields = this.parseMetafields(metafields)
+
+    if (Object.keys(parsedMetafields).length > 0) {
+      merge(resource, parsedMetafields)
+    }
+  }
+
   async addMetafieldsToOrders(orders) {
     return Promise.all(orders.map(async (order) => {
-      const metafields = await this.fetchMetafields('order', order.id)
-      const parsed = this.parseMetafields(metafields)
-
-      if (Object.keys(parsed).length > 0) {
-        this.mergeMetafields(parsed, order)
-      }
-
+      await this.findAndMergeMetafields(order, 'order')
       return order
     }))
   }
 
+  async addMetafieldsToShows(shows) {
+    return Promise.all(shows.map(async (show) => {
+      await Promise.all(show.variants.map(async (variant) => {
+        await this.findAndMergeMetafields(variant, 'variant')
+      }))
+
+      return show
+    }))
+  }
+
   // TODO: WIP Need to add logic for email_failed when webhooks are setup
-  async updateMetafieldsForOrders(orders, key, value) {
+  async updateMetafieldsForOrders(orders, variantId) {
     return Promise.all(orders.map(async (order) => {
       const metafields = await this.fetchMetafields('order', order.id)
 
@@ -200,25 +209,11 @@ class CustomShopify {
 
         if (response.status !== 'success') throw new Error(`Error updating metafields for order ${order.id}`)
 
+        this.clearCache('orders', variantId)
         return response
       }
 
       return null
-    }))
-  }
-
-  async addMetafieldsToShows(shows) {
-    return Promise.all(shows.map(async (show) => {
-      await Promise.all(show.variants.map(async (variant) => {
-        const metafields = await this.fetchMetafields('variant', variant.id)
-        const parsed = this.parseMetafields(metafields)
-
-        if (Object.keys(parsed).length > 0) {
-          this.mergeMetafields(parsed, variant)
-        }
-      }))
-
-      return show
     }))
   }
 }
